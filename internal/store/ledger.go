@@ -58,25 +58,72 @@ func clone(s Snapshot) Snapshot {
 	n := EmptySnapshot()
 	n.SchemaVersion = s.SchemaVersion
 	for k, v := range s.Batches {
-		n.Batches[k] = v
+		n.Batches[k] = cloneBatch(v)
 	}
 	for k, v := range s.Sources {
-		n.Sources[k] = v
+		n.Sources[k] = cloneSource(v)
 	}
 	for k, v := range s.Reviews {
-		n.Reviews[k] = v
+		n.Reviews[k] = cloneReview(v)
 	}
 	for k, v := range s.Snapshots {
-		n.Snapshots[k] = v
+		n.Snapshots[k] = cloneSnapshot(v)
 	}
 	for k, v := range s.Certificates {
 		n.Certificates[k] = v
 	}
-	n.Events = append([]model.AuditEvent(nil), s.Events...)
+	n.Events = make([]model.AuditEvent, len(s.Events))
+	for i, e := range s.Events {
+		e.Payload = clonePayload(e.Payload)
+		n.Events[i] = e
+	}
 	for k, v := range s.Idempotency {
 		n.Idempotency[k] = append([]byte(nil), v...)
 	}
 	return n
+}
+func cloneBatch(b model.DatasetBatch) model.DatasetBatch {
+	b.ReleaseScope = append([]string(nil), b.ReleaseScope...)
+	return b
+}
+func cloneSource(s model.SourceRecord) model.SourceRecord {
+	s.EvidenceRefs = append([]string(nil), s.EvidenceRefs...)
+	return s
+}
+func cloneReview(r model.ReviewTask) model.ReviewTask {
+	r.Issues = append([]string(nil), r.Issues...)
+	r.EvidenceRefs = append([]string(nil), r.EvidenceRefs...)
+	return r
+}
+func cloneSnapshot(s model.ReleaseSnapshot) model.ReleaseSnapshot {
+	s.ApprovedScope = append([]string(nil), s.ApprovedScope...)
+	return s
+}
+func clonePayload(p map[string]any) map[string]any {
+	if p == nil {
+		return nil
+	}
+	out := make(map[string]any, len(p))
+	for k, v := range p {
+		out[k] = cloneValue(v)
+	}
+	return out
+}
+func cloneValue(v any) any {
+	switch x := v.(type) {
+	case []string:
+		return append([]string(nil), x...)
+	case []any:
+		out := make([]any, len(x))
+		for i, item := range x {
+			out[i] = cloneValue(item)
+		}
+		return out
+	case map[string]any:
+		return clonePayload(x)
+	default:
+		return v
+	}
 }
 func validate(s Snapshot) error {
 	if s.SchemaVersion != SchemaVersion {

@@ -20,9 +20,12 @@ func (s *Service) CreateBatch(r CreateBatchRequest, key string) (model.DatasetBa
 		return out, err
 	}
 	now := model.Now()
-	out = model.DatasetBatch{BatchID: newID("batch"), Title: r.Title, Steward: r.Steward, PolicyVersion: r.PolicyVersion, ReleaseScope: r.ReleaseScope, Status: model.StatusDraft, Version: 1, CreatedAt: now, UpdatedAt: now}
+	scope := append([]string(nil), r.ReleaseScope...)
+	out = model.DatasetBatch{BatchID: newID("batch"), Title: r.Title, Steward: r.Steward, PolicyVersion: r.PolicyVersion, ReleaseScope: scope, Status: model.StatusDraft, Version: 1, CreatedAt: now, UpdatedAt: now}
 	err := s.Ledger.Update(func(st *store.Snapshot) error {
-		st.Batches[out.BatchID] = out
+		stored := out
+		stored.ReleaseScope = append([]string(nil), scope...)
+		st.Batches[out.BatchID] = stored
 		s.appendEvent(st, out.BatchID, model.NewEvent("batch_created", r.Steward, map[string]any{"title": r.Title}))
 		return nil
 	})
