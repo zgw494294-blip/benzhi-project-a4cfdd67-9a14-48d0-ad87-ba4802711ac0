@@ -1,17 +1,29 @@
 package model
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type DomainError struct {
 	Code    string
 	Message string
+	cause   error
 }
 
-func (e *DomainError) Error() string    { return e.Code + ": " + e.Message }
+func (e *DomainError) Error() string { return e.Code + ": " + e.Message }
+func (e *DomainError) Unwrap() error { return e.cause }
+
 func Err(code, message string) error    { return &DomainError{Code: code, Message: message} }
-func Wrap(code string, err error) error { return &DomainError{Code: code, Message: err.Error()} }
+func Wrap(code string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return &DomainError{Code: code, Message: err.Error(), cause: err}
+}
 func IsCode(err error, code string) bool {
-	if e, ok := err.(*DomainError); ok {
+	var e *DomainError
+	if errors.As(err, &e) {
 		return e.Code == code
 	}
 	return false
