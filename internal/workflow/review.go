@@ -60,7 +60,7 @@ func (s *Service) Review(batchID, sourceID string, r ReviewRequest, key string) 
 		b.Version++
 		b.UpdatedAt = now
 		st.Batches[batchID] = b
-		s.appendEvent(st, batchID, model.NewEvent("source_reviewed", r.Reviewer, map[string]any{"source_id": sourceID, "decision": r.Decision, "issues": r.Issues}))
+		s.appendEvent(st, batchID, model.NewEvent("source_reviewed", r.Reviewer, map[string]any{"source_id": sourceID, "decision": r.Decision, "issues": append([]string(nil), r.Issues...)}))
 		return nil
 	})
 	if err == nil && key != "" {
