@@ -21,7 +21,11 @@ func (s *Server) batches(w http.ResponseWriter, r *http.Request) {
 			respondError(w, err)
 			return
 		}
-		v, e := s.Service.CreateBatch(req, key(r))
+		if err := r.Context().Err(); err != nil {
+			respondError(w, err)
+			return
+		}
+		v, e := s.Service.CreateBatchContext(r.Context(), req, key(r))
 		if e != nil {
 			respondError(w, e)
 			return

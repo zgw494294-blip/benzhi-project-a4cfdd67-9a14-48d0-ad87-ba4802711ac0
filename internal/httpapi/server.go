@@ -28,5 +28,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }
-func decode(r *http.Request, v any) error { return json.NewDecoder(r.Body).Decode(v) }
+func decode(r *http.Request, v any) error {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		return err
+	}
+	return r.Context().Err()
+}
 func key(r *http.Request) string          { return strings.TrimSpace(r.Header.Get("Idempotency-Key")) }

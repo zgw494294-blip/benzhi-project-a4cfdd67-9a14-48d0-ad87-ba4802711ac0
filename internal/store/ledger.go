@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"github.com/benzhi-project/a4cfdd67-9a14-48d0-ad87-ba4802711ac0/internal/model"
 	"sync"
 )
@@ -39,13 +40,25 @@ func (l *Ledger) Read(fn func(Snapshot) error) error {
 	return fn(clone(l.state))
 }
 func (l *Ledger) Update(fn func(*Snapshot) error) error {
+	return l.UpdateContext(context.Background(), fn)
+}
+func (l *Ledger) UpdateContext(ctx context.Context, fn func(*Snapshot) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	next := clone(l.state)
 	if err := fn(&next); err != nil {
 		return err
 	}
 	if err := validate(next); err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := l.persist(next); err != nil {
